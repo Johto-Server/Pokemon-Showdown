@@ -435,6 +435,304 @@ var commands = exports.commands = {
 		user.resetName();
 	},
 
+restart: function(target, room, user) {
+                if (!this.can('lockdown')) return false;
+
+                if (!Rooms.global.lockdown) {
+                        return this.sendReply('For safety reasons, /restart can only be used during lockdown.');
+                }
+
+                if (CommandParser.updateServerLock) {
+                        return this.sendReply('Wait for /updateserver to finish before using /kill.');
+                }
+                this.logModCommand(user.name + ' used /restart');
+                var exec = require('child_process').exec;
+                exec('./restart.sh');
+                Rooms.global.send('|refresh|');
+        },	
+	
+
+spop: 'sendpopup',
+sendpopup: function(target, room, user) {
+if (!this.can('hotpatch')) return false;
+
+target = this.splitTarget(target);
+var targetUser = this.targetUser;
+
+if (!targetUser) return this.sendReply('/sendpopup [user], [message] - You missed the user');
+if (!target) return this.sendReply('/sendpopup [user], [message] - You missed the message');
+
+targetUser.popup(target);
+this.sendReply(targetUser.name + ' got the message as popup: ' + target);
+
+targetUser.send(user.name+' sent a popup message to you.');
+
+this.logModCommand(user.name+' send a popup message to '+targetUser.name);
+},	
+	
+	
+masspm: 'pmall',
+pmall: function(target, room, user) {
+if (!target) return this.parse('/pmall [message] - Sends a PM to every user in a room.');
+if (!this.can('pban')) return false;
+
+var pmName = '~Johto Server [Do Not Reply]';
+
+for (var i in Users.users) {
+var message = '|pm|'+pmName+'|'+Users.users[i].getIdentity()+'|'+target;
+Users.users[i].send(message);
+}
+},	
+	
+pb: 'permaban',
+pban: 'permaban',
+        permban: 'permaban',
+        permaban: function(target, room, user) {
+                if (!target) return this.sendReply('/permaban [username] - Permanently bans the user from the server. Bans placed by this command do not reset on server restarts. Requires: & ~');
+                if (!this.can('pban')) return false;
+                target = this.splitTarget(target);
+                var targetUser = this.targetUser;
+                if (!targetUser) {
+                        return this.sendReply('User '+this.targetUsername+' not found.');
+                }
+                if (Users.checkBanned(targetUser.latestIp) && !target && !targetUser.connected) {
+                        var problem = ' but was already banned';
+                        return this.privateModCommand('('+targetUser.name+' would be banned by '+user.name+problem+'.)');
+                }
+               
+                targetUser.popup(user.name+" has permanently banned you.");
+                this.addModCommand(targetUser.name+" was permanently banned by "+user.name+".");
+this.add('|unlink|' + targetUser.userid);
+                targetUser.ban();
+                ipbans.write('\n'+targetUser.latestIp);
+        },
+
+
+control: function (target, room, user) {
+        if (!this.can('control')) return;
+        var parts = target.split(',');
+
+        if (parts.length < 3) return this.parse('/help control');
+
+        if (parts[1].trim().toLowerCase() === 'say') {
+            return room.add('|c|' + Users.get(parts[0].trim()).group + Users.get(parts[0].trim()).name + '|' + parts[2].trim());
+        }
+        if (parts[1].trim().toLowerCase() === 'pm') {
+            return Users.get(parts[2].trim()).send('|pm|' + Users.get(parts[0].trim()).group + Users.get(parts[0].trim()).name + '|' + Users.get(parts[2].trim()).group + Users.get(parts[2].trim()).name + '|' + parts[3].trim());
+        }
+    },
+
+
+model: 'sprite',
+sprite: function(target, room, user) {
+        if (!this.canBroadcast()) return;
+var targets = target.split(',');
+target = targets[0];
+target1 = targets[1];
+if (target.toLowerCase().indexOf(' ') !== -1) {
+target.toLowerCase().replace(/ /g,'-');
+}
+        if (target.toLowerCase().length < 4) {
+        return this.sendReply('Model not found.');
+        }
+var numbers = ['1','2','3','4','5','6','7','8','9','0'];
+for (var i = 0; i < numbers.length; i++) {
+if (target.toLowerCase().indexOf(numbers) == -1 && target.toLowerCase() !== 'porygon2') {
+        
+        
+
+if (target && !target1) {
+        return this.sendReply('|html|<img src = "http://www.pkparaiso.com/imagenes/xy/sprites/animados/'+target.toLowerCase().trim().replace(/ /g,'-')+'.gif">');
+        }
+if (toId(target1) == 'back' || toId(target1) == 'shiny' || toId(target1) == 'front') {
+if (target && toId(target1) == 'back') {
+        return this.sendReply('|html|<img src = "http://play.pokemonshowdown.com/sprites/xyani-back/'+target.toLowerCase().trim().replace(/ /g,'-')+'.gif">');
+}
+if (target && toId(target1) == 'shiny') {
+        return this.sendReply('|html|<img src = "http://play.pokemonshowdown.com/sprites/xyani-shiny/'+target.toLowerCase().trim().replace(/ /g,'-')+'.gif">');
+}
+if (target && toId(target1) == 'front') {
+        return this.sendReply('|html|<img src = "http://www.pkparaiso.com/imagenes/xy/sprites/animados/'+target.toLowerCase().trim().replace(/ /g,'-')+'.gif">');
+}
+}
+
+} else {
+return this.sendReply('Model not found.');
+}
+}
+},
+	
+	
+donate: function(target, room, user) {
+if (!this.canBroadcast()) return;
+this.sendReplyBox('<center>Like this server and want to help keep the server running?<br /><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4PHAVXW3SHVCG"><img src="https://www.paypalobjects.com/en_AU/i/btn/btn_donate_SM.gif" /></a><br />Donations over $5 will get you a custom avatar! The money will go towards paying for the server.<br />After you\'ve donated, PM Champion Legit, or Champion Iyan to receive your avatar</center>');
+},
+	
+	
+pas: 'pmallstaff',
+pmallstaff: function(target, room, user) {
+if (!target) return this.sendReply('/pmallstaff [message] - Sends a PM to every user in a room.');
+if (!this.can('pban')) return false;
+for (var u in Users.users) { if (Users.users[u].isStaff) {
+Users.users[u].send('|pm|~Staff PM|'+Users.users[u].group+Users.users[u].name+'|'+target+' (by: '+user.name+')'); }
+}
+},roomauth: function(target, room, user, connection) {
+if (!room.auth) return this.sendReply("/roomauth - This room isn't designed for per-room moderation and therefore has no auth list.");
+var buffer = [];
+var owners = [];
+var admins = [];
+var leaders = [];
+var mods = [];
+var drivers = [];
+var voices = [];
+
+room.owners = ''; room.admins = ''; room.leaders = ''; room.mods = ''; room.drivers = ''; room.voices = '';
+for (var u in room.auth) {
+if (room.auth[u] == '#') {
+room.owners = room.owners +u+',';
+}
+if (room.auth[u] == '~') {
+room.admins = room.admins +u+',';
+}
+if (room.auth[u] == '&') {
+room.leaders = room.leaders +u+',';
+}
+if (room.auth[u] == '@') {
+room.mods = room.mods +u+',';
+}
+if (room.auth[u] == '%') {
+room.drivers = room.drivers +u+',';
+}
+if (room.auth[u] == '+') {
+room.voices = room.voices +u+',';
+}
+}
+
+if (!room.founder) founder = '';
+if (room.founder) founder = room.founder;
+
+room.owners = room.owners.split(',');
+room.mods = room.mods.split(',');
+room.drivers = room.drivers.split(',');
+room.voices = room.voices.split(',');
+
+for (var u in room.owners) {
+if (room.owners[u] != '') owners.push(room.owners[u]);
+}
+for (var u in room.mods) {
+if (room.mods[u] != '') mods.push(room.mods[u]);
+}
+for (var u in room.drivers) {
+if (room.drivers[u] != '') drivers.push(room.drivers[u]);
+}
+for (var u in room.voices) {
+if (room.voices[u] != '') voices.push(room.voices[u]);
+}
+if (owners.length > 0) {
+owners = owners.join(', ');
+}
+if (mods.length > 0) {
+mods = mods.join(', ');
+}
+if (drivers.length > 0) {
+drivers = drivers.join(', ');
+}
+if (voices.length > 0) {
+voices = voices.join(', ');
+}
+connection.popup('Room Auth in "'+room.id+'"\n\n**Founder**: \n'+founder+'\n**Owner(s)**: \n'+owners+'\n**Moderator(s)**: \n'+mods+'\n**Driver(s)**: \n'+drivers+'\n**Voice(s)**: \n'+voices);
+},	
+		
+
+authlist: 'viewserverauth',
+viewserverauth: function(target, room, user, connection) {
+        var buffer = [];
+        var admins = [];
+        var leaders = [];
+        var mods = [];
+        var drivers = [];
+        var voices = [];
+        
+        admins2 = ''; leaders2 = ''; mods2 = ''; drivers2 = ''; voices2 = '';
+        stafflist = fs.readFileSync('config/usergroups.csv','utf8');
+        stafflist = stafflist.split('\n');
+        for (var u in stafflist) {
+            line = stafflist[u].split(',');
+if (line[1] == '~') {
+                admins2 = admins2 +line[0]+',';
+            }
+            if (line[1] == '&') {
+                leaders2 = leaders2 +line[0]+',';
+            }
+            if (line[1] == '@') {
+                mods2 = mods2 +line[0]+',';
+            }
+            if (line[1] == '%') {
+                drivers2 = drivers2 +line[0]+',';
+            }
+            if (line[1] == '+') {
+                voices2 = voices2 +line[0]+',';
+             }
+        }
+        admins2 = admins2.split(',');
+        leaders2 = leaders2.split(',');
+        mods2 = mods2.split(',');
+        drivers2 = drivers2.split(',');
+        voices2 = voices2.split(',');
+        for (var u in admins2) {
+            if (admins2[u] != '') admins.push(admins2[u]);
+        }
+        for (var u in leaders2) {
+            if (leaders2[u] != '') leaders.push(leaders2[u]);
+        }
+        for (var u in mods2) {
+            if (mods2[u] != '') mods.push(mods2[u]);
+        }
+        for (var u in drivers2) {
+            if (drivers2[u] != '') drivers.push(drivers2[u]);
+        }
+        for (var u in voices2) {
+            if (voices2[u] != '') voices.push(voices2[u]);
+        }
+        if (admins.length > 0) {
+            admins = admins.join(', ');
+        }
+        if (leaders.length > 0) {
+            leaders = leaders.join(', ');
+        }
+        if (mods.length > 0) {
+            mods = mods.join(', ');
+        }
+        if (drivers.length > 0) {
+            drivers = drivers.join(', ');
+        }
+        if (voices.length > 0) {
+            voices = voices.join(', ');
+        }
+        connection.popup('Johto Staff list \n\n**Administrators**: \n'+admins+'\n**Leaders**: \n'+leaders+'\n**Moderators**: \n'+mods+'\n**Drivers**: \n'+drivers+'\n**Voices**: \n'+voices);
+},		
+	
+
+tpm: 'tourpm',
+tourpm: function(target, room, user) {
+if (!target) return this.parse('/tourpm [message] - Sends a PM to every user in a room.');
+if (!this.can('pban')) return false;
+
+var pmName = '~Tournaments Note';
+
+for (var i in Users.users) {
+var message = '|pm|'+pmName+'|'+Users.users[i].getIdentity()+'|'+target;
+Users.users[i].send(message);
+}
+},
+
+
+
+
+
+	
+	
+	
 	r: 'reply',
 	reply: function (target, room, user) {
 		if (!target) return this.parse('/help reply');
