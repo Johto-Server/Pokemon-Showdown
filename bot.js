@@ -15,7 +15,7 @@ var config = {
         return toId(this.name);
     },
     group: '&',
-	customavatars: 'checkbot.png',
+    customavatars: 'checkbot.png',
     join: true,
     rooms: ['lobby'],
     punishvals: {
